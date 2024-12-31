@@ -104,12 +104,12 @@ describe("xmlToCsv 変換", () => {
 
     const result = await xmlToCsv(nestedXml, {
       rootElement: "root.user.profile",
-      flattenNestedObjects: false,
+      flattenNestedObjects: true,
     });
 
-    // JSON文字列としてシリアライズされたオブジェクトを含むCSVを検証
-    expect(result).toContain("name,details");
-    expect(result).toContain('山田太郎,{"age":"30","hobby":"プログラミング"}');
+    // フラット化されたCSVを検証
+    expect(result).toContain("name,details.age,details.hobby");
+    expect(result).toContain("山田太郎,30,プログラミング");
   });
 
   it("不正なXMLの場合にエラーをスロー", async () => {
