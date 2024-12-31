@@ -120,4 +120,4 @@ For bug reports or feature requests, please use the Issue tracker in the GitHub 
 
 ## Author
 
-@db-r-hashimoto
+[@db-r-hashimoto](https://github.com/db-r-hashimoto)

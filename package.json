@@ -1,5 +1,5 @@
 {
-  "name": "xml-easy-convert",
+  "name": "xml2json-csv",
   "version": "2.0.1",
   "description": "Simple XML to CSV/JSON conversion utility",
   "main": "dist/index.js",
@@ -17,7 +17,7 @@
     "converter",
     "transformation"
   ],
-  "author": "Your Name",
+  "author": "r-hashi",
   "license": "MIT",
   "dependencies": {
     "json2csv": "^5.0.7",
