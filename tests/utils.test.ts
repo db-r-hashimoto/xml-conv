@@ -1,75 +1,131 @@
-import { flattenJson, isValidXml } from "../src/utils.js";
+import { parseXmlToJson } from "../src/utils";
+import { jest } from "@jest/globals";
 
-describe("utils関数のテスト", () => {
-  describe("flattenJson", () => {
-    it("ネストされたオブジェクトをフラット化", () => {
-      const input = {
-        name: "test",
-        details: {
-          age: 30,
-          address: {
-            city: "Tokyo",
-            code: "123",
-          },
-        },
-      };
-
-      expect(flattenJson(input)).toEqual({
-        name: "test",
-        "details.age": 30,
-        "details.address.city": "Tokyo",
-        "details.address.code": "123",
-      });
-    });
-
-    it("配列を含むオブジェクトを処理", () => {
-      const input = {
-        items: ["a", "b"],
-        data: {
-          values: [1, 2, 3],
-        },
-      };
-
-      expect(flattenJson(input)).toEqual({
-        items: ["a", "b"],
-        "data.values": [1, 2, 3],
-      });
-    });
-
-    it("nullやundefinedを含むオブジェクトを処理", () => {
-      const input = {
-        a: null,
-        b: undefined,
-        c: {
-          d: null,
-        },
-      };
-
-      expect(flattenJson(input)).toEqual({
-        a: null,
-        b: undefined,
-        "c.d": null,
-      });
-    });
+describe("utils", () => {
+  // コンソールエラーをモック化
+  const originalError = console.error;
+  beforeAll(() => {
+    console.error = jest.fn();
   });
 
-  describe("isValidXml", () => {
-    it("有効なXMLを検証", async () => {
-      const validXml = "<root><item>test</item></root>";
-      expect(await isValidXml(validXml)).toBe(true);
+  afterAll(() => {
+    console.error = originalError;
+  });
+
+  describe("parseXmlToJson", () => {
+    it("基本的なXMLをJSONに変換", async () => {
+      const xml = `
+        <root>
+          <item>
+            <name>テスト</name>
+            <value>123</value>
+          </item>
+        </root>
+      `;
+
+      const result = await parseXmlToJson(xml);
+      expect(result).toEqual({
+        root: {
+          item: {
+            name: "テスト",
+            value: "123",
+          },
+        },
+      });
     });
 
-    it("無効なXMLを検証", async () => {
-      const invalidXml = "<root><item>test</root>";
-      expect(await isValidXml(invalidXml)).toBe(false);
+    it("属性を含むXMLを変換", async () => {
+      const xml = `
+        <root>
+          <item id="1" type="test">
+            <name>テスト</name>
+          </item>
+        </root>
+      `;
+
+      const result = await parseXmlToJson(xml);
+      expect(result).toEqual({
+        root: {
+          item: {
+            "@": {
+              id: "1",
+              type: "test",
+            },
+            name: "テスト",
+          },
+        },
+      });
     });
 
-    it("空の文字列を検証", async () => {
-      expect(await isValidXml("")).toBe(false);
+    it("空の要素を変換", async () => {
+      const xml = `
+        <root>
+          <empty></empty>
+          <self-closing/>
+        </root>
+      `;
+      const result = await parseXmlToJson(xml);
+      expect(result).toEqual({
+        root: {
+          empty: "",
+          "self-closing": "",
+        },
+      });
     });
 
-    it("XMLでない文字列を検証", async () => {
-      expect(await isValidXml("not xml")).toBe(false);
+    it("不正なXMLでエラーをスロー", async () => {
+      const xml = "<root><invalid></root>";
+      await expect(parseXmlToJson(xml)).rejects.toThrow();
+    });
+
+    it("空白文字を適切に処理", async () => {
+      const xml = `
+        <root>
+          <item>
+            <name>  テスト  </name>
+            <value>  123  </value>
+          </item>
+        </root>
+      `;
+
+      const result = await parseXmlToJson(xml);
+      expect(result).toEqual({
+        root: {
+          item: {
+            name: "テスト",
+            value: "123",
+          },
+        },
+      });
+    });
+
+    it("ネストされた要素を変換", async () => {
+      const xml = `
+        <root>
+          <user>
+            <profile>
+              <name>テスト</name>
+              <details>
+                <age>30</age>
+              </details>
+            </profile>
+          </user>
+        </root>
+      `;
+
+      const result = await parseXmlToJson(xml);
+      expect(result).toEqual({
+        root: {
+          user: {
+            profile: {
+              name: "テスト",
+              details: {
+                age: "30",
+              },
+            },
+          },
+        },
+      });
     });
   });
 });

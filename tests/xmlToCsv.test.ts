@@ -1,126 +1,142 @@
-import { xmlToCsv } from "../src/xmlToCsv.js";
+import { xmlToCsv } from "../src/xmlToCsv";
 
-describe("xmlToCsv 変換", () => {
-  // シンプルなXMLテスト
-  const simpleXml = `
-    <root>
-      <item>
-        <name>山田太郎</name>
-        <age>30</age>
-        <city>東京</city>
-      </item>
-      <item>
-        <name>佐藤花子</name>
-        <age>25</age>
-        <city>大阪</city>
-      </item>
-    </root>
-  `;
-
-  // ネストされたXMLテスト
-  const nestedXml = `
-    <root>
-      <user>
-        <profile>
-          <name>山田太郎</name>
-          <details>
-            <age>30</age>
-            <address>
-              <city>東京</city>
-              <street>渋谷区</street>
-            </address>
-          </details>
-        </profile>
-      </user>
-    </root>
-  `;
-
-  // 属性を含むXMLテスト
-  const xmlWithAttributes = `
-    <root>
-      <item id="1">
-        <name>山田太郎</name>
-        <age>30</age>
-      </item>
-    </root>
-  `;
-
-  it("シンプルなXMLをCSVに変換", async () => {
-    const result = await xmlToCsv(simpleXml);
-
-    // CSVの内容を検証
-    expect(result).toContain("name,age,city");
-    expect(result).toContain("山田太郎,30,東京");
-    expect(result).toContain("佐藤花子,25,大阪");
-  });
-
-  it("ネストされたXMLをフラット化してCSVに変換", async () => {
-    const result = await xmlToCsv(nestedXml, {
-      rootElement: "root.user.profile",
-      flattenNestedObjects: true,
-    });
-
-    // CSVの内容を検証
-    expect(result).toContain(
-      "name,details.age,details.address.city,details.address.street"
-    );
-    expect(result).toContain("山田太郎,30,東京,渋谷区");
-  });
-
-  it("属性を含むXMLをCSVに変換", async () => {
-    const result = await xmlToCsv(xmlWithAttributes);
-
-    // CSVの内容を検証
-    expect(result).toContain("@id,name,age");
-    expect(result).toContain("1,山田太郎,30");
-  });
-
-  it("カスタムデリミタを使用", async () => {
-    const result = await xmlToCsv(simpleXml, {
-      csvOptions: {
-        delimiter: ";",
-      },
-    });
-
-    // デリミタを検証
-    expect(result).toContain("name;age;city");
-    expect(result).toContain("山田太郎;30;東京");
-  });
-
-  it("ネストされた構造を保持してCSVに変換", async () => {
-    const nestedXml = `
-      <root>
-        <user>
-          <profile>
+describe("xmlToCsv", () => {
+  describe("基本的な変換", () => {
+    it("単一要素の変換", async () => {
+      const xml = `
+        <root>
+          <item>
             <name>山田太郎</name>
-            <details>
-              <age>30</age>
-              <hobby>プログラミング</hobby>
-            </details>
-          </profile>
-        </user>
-      </root>
-    `;
-
-    const result = await xmlToCsv(nestedXml, {
-      rootElement: "root.user.profile",
-      flattenNestedObjects: true,
+            <age>30</age>
+          </item>
+        </root>
+      `;
+      const csv = await xmlToCsv(xml);
+      expect(csv).toBe("age,name\n30,山田太郎");
     });
 
-    // フラット化されたCSVを検証
-    expect(result).toContain("name,details.age,details.hobby");
-    expect(result).toContain("山田太郎,30,プログラミング");
+    it("複数要素の変換", async () => {
+      const xml = `
+        <root>
+          <item>
+            <name>山田太郎</name>
+            <age>30</age>
+          </item>
+          <item>
+            <name>佐藤花子</name>
+            <age>25</age>
+          </item>
+        </root>
+      `;
+      const csv = await xmlToCsv(xml);
+      expect(csv).toBe("age,name\n30,山田太郎\n25,佐藤花子");
+    });
   });
 
-  it("不正なXMLの場合にエラーをスロー", async () => {
-    await expect(xmlToCsv("<invalid>xml")).rejects.toThrow();
+  describe("配列の処理", () => {
+    it("配列要素を複数行に展開", async () => {
+      const xml = `
+        <root>
+          <item>
+            <order>
+              <id>1</id>
+              <products>
+                <product>商品A</product>
+                <product>商品B</product>
+              </products>
+              <total>1000</total>
+            </order>
+          </item>
+        </root>
+      `;
+      const csv = await xmlToCsv(xml);
+      expect(csv).toBe(
+        "order_id,order_products_product,order_total\n" +
+          "1,商品A,1000\n" +
+          "1,商品B,1000"
+      );
+    });
   });
 
-  it("空のデータを処理", async () => {
-    const emptyXml = "<root></root>";
-    const result = await xmlToCsv(emptyXml);
+  describe("属性の処理", () => {
+    it("要素の属性を処理", async () => {
+      const xml = `
+        <root>
+          <item>
+            <product id="1" type="book">
+              <name>プログラミング入門</name>
+              <price currency="JPY">2000</price>
+            </product>
+          </item>
+        </root>
+      `;
+      const csv = await xmlToCsv(xml);
+      expect(csv).toBe(
+        "product_@id,product_@type,product_name,product_price,product_price_@currency\n" +
+          "1,book,プログラミング入門,2000,JPY"
+      );
+    });
+  });
 
-    // 空のデータに対する適切な処理を検証
-    expect(result.trim()).toBe("");
+  describe("エッジケース", () => {
+    it("空のXMLを処理", async () => {
+      const xml = "<root></root>";
+      const csv = await xmlToCsv(xml);
+      expect(csv).toBe("");
+    });
+
+    it("空の要素を含むXMLを処理", async () => {
+      const xml = `
+        <root>
+          <item>
+            <name>test</name>
+            <value></value>
+            <empty/>
+          </item>
+        </root>
+      `;
+      const csv = await xmlToCsv(xml);
+      expect(csv).toBe("name\ntest");
+    });
+
+    it("不正なXMLでエラーをスロー", async () => {
+      const xml = "<root><invalid></root>";
+      await expect(xmlToCsv(xml)).rejects.toThrow();
+    });
+  });
+
+  describe("複合的なケース", () => {
+    it("ネストした配列と属性を含むXMLを処理", async () => {
+      const xml = `
+        <root>
+          <item>
+            <order id="1">
+              <products>
+                <product code="A">
+                  <name>商品A</name>
+                  <categories>
+                    <category>電化製品</category>
+                    <category>家電</category>
+                  </categories>
+                </product>
+                <product code="B">
+                  <name>商品B</name>
+                  <categories>
+                    <category>食品</category>
+                  </categories>
+                </product>
+              </products>
+            </order>
+          </item>
+        </root>
+      `;
+      const csv = await xmlToCsv(xml);
+      expect(csv).toBe(
+        "order_@id,order_products_product_@code,order_products_product_categories_category,order_products_product_name\n" +
+          "1,A,電化製品,商品A\n" +
+          "1,A,家電,商品A\n" +
+          "1,B,食品,商品B"
+      );
+    });
   });
 });
