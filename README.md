@@ -12,7 +12,7 @@ A Node.js utility package for easily converting XML data to CSV or JSON.
 ## Installation
 
 ```bash
-npm install xml-easy-convert
+npm install xml2json-csv
 ```
 
 ## Usage
@@ -20,32 +20,33 @@ npm install xml-easy-convert
 ### XML to JSON Conversion
 
 ```typescript
-import { xmlToJson } from "xml-easy-convert";
+import { xmlToJson } from "xml2json-csv";
 
 const xmlString = `
-  <root>
+  <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <items>
     <item>
       <name>John Smith</name>
       <age>30</age>
     </item>
-  </root>
+    <item>
+      <name>John Smith</name>
+      <age>30</age>
+    </item>
+  </items>
 `;
 
 async function convertExample() {
   try {
     // Basic conversion
-    const jsonData = await xmlToJson(xmlString);
-    console.log(jsonData);
-
-    // Flatten nested objects
-    const flattenedData = await xmlToJson(xmlString, {
-      flattenNestedObjects: true,
+    const jsonData = await xmlToJson(xmlString, {
+      rootElement: "items",
     });
-    console.log(flattenedData);
+    console.log(jsonData);
 
     // Specify custom root element
     const customRootData = await xmlToJson(xmlString, {
-      rootElement: "custom",
+      rootElement: "<custom root element>",
     });
     console.log(customRootData);
   } catch (error) {
@@ -57,7 +58,7 @@ async function convertExample() {
 ### XML to CSV Conversion
 
 ```typescript
-import { xmlToCsv } from "xml-easy-convert";
+import { xmlToCsv } from "xml2json-csv";
 
 const xmlString = `
   <root>
@@ -76,7 +77,6 @@ async function convertExample() {
 
     // Custom CSV options
     const customCsv = await xmlToCsv(xmlString, {
-      flattenNestedObjects: true,
       csvOptions: {
         delimiter: ";",
       },
@@ -93,12 +93,10 @@ async function convertExample() {
 ### `xmlToJson` Options
 
 - `rootElement`: Root element to extract (default: 'root')
-- `flattenNestedObjects`: Flatten nested objects (default: false)
 
 ### `xmlToCsv` Options
 
 - `rootElement`: Root element to extract (default: 'root')
-- `flattenNestedObjects`: Flatten nested objects (default: true)
 - `csvOptions`: json2csv options (delimiter, encoding, etc.)
 
 ## Error Handling
